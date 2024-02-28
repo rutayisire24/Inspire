@@ -103,9 +103,10 @@ with st.expander("How to Use This App"):
         - **Step 1:** Enter the password to load the app.
         - **Step 2:** Upload the Documents using the file uploaders (Either CSV or XLSX ).
         - **Step 3:** Select the columns from both documents that you want to compare.
-        - **Step 4:** Click on 'Adjust Weights' to set the importance of each selected column (1 to 5).
+        - **Step 4:** **Optional** Click on 'Set  Weights' to set the importance of each selected column (1 to 3).
         - **Step 5:** Enter the number of records you want to compare or 'All' to compare all records.
-        - **Step 6:** Click on 'Compare Documents' to start the  matching process.
+        - **Step 6 :** **Optional** Click on 'Set Cutoff Score' to set the cutoff of the matching depending on similarity).
+        - **Step 7 :** Click on 'Compare Documents' to start the  matching process.
     """)
 
 password = st.text_input("Enter the password", type="password", key="password_input")
@@ -144,7 +145,7 @@ if st.session_state['authenticated']:
         columns2 = st.multiselect('Select columns from the second document:', options=df2.columns, key='columns_select_2')
 
         if columns1 and columns2:
-            with st.expander("Set weights for the columns"):
+            with st.expander("Set weights"):
                 weights1 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_1_{col}') for col in columns1]
                 weights2 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_2_{col}') for col in columns2]
 
