@@ -2,18 +2,23 @@ import streamlit as st
 import pandas as pd
 from fuzzywuzzy import fuzz
 import numpy as np
-import re  # For regex operations
 
 # Preprocessing function to clean data
 def preprocess_data(df, columns):
     for col in columns:
-        df[col] = df[col].astype(str).str.lower()  # Convert to lowercase
-        df[col] = df[col].str.strip()  # Trim whitespace
-        df[col] = df[col].apply(lambda x: preprocess_string(x) if not pd.isna(x) else x)
+        # Handle missing values directly, avoiding conversion to 'nan' string
+        df[col] = df[col].apply(lambda x: preprocess_string(x) if pd.notnull(x) else x)
     return df
 
 def preprocess_string(x):
-    return re.sub(r'\W+', ' ', x.lower().strip())
+    """Preprocess a single string: lowercase, trim, and remove special characters."""
+    # Convert to lowercase
+    x = x.lower()
+    # Trim whitespace
+    x = x.strip()
+    # Replace non-alphanumeric characters with spaces
+    x = ''.join(char if char.isalnum() or char.isspace() else ' ' for char in x)
+    return x
 
 # Fuzzy matching function (with preprocessing included)
 def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1_name, file2_name):

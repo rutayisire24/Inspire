@@ -2,4 +2,3 @@ streamlit
 fuzzywuzzy
 python-Levenshtein  # Optional for performance improvement
 pandas
-re
