@@ -70,6 +70,10 @@ if st.session_state['authenticated']:
         file1 = st.file_uploader('Choose the first file', type=['csv'], key='file_uploader_1')
         file2 = st.file_uploader('Choose the second file', type=['csv'], key='file_uploader_2')
 
+        # Capture the names of the uploaded files for use in headings and elsewhere
+        file1_name = file1.name if file1 else 'Document 1'
+        file2_name = file2.name if file2 else 'Document 2'
+
         if file1 and file2:
             df1 = pd.read_csv(file1)
             df2 = pd.read_csv(file2)
@@ -77,20 +81,20 @@ if st.session_state['authenticated']:
             st.success('Files uploaded successfully!')
 
     if file1 is not None and file2 is not None:
-        st.header('Preview of Document 1')
+        st.header(f'Preview of {file1_name}')
         st.write(df1.head())
 
-        st.header('Preview of Document 2')
+        st.header(f'Preview of {file2_name}')
         st.write(df2.head())
 
-        columns1 = st.multiselect('Select columns from Document 1:', options=df1.columns, key='columns_select_1')
-        columns2 = st.multiselect('Select columns from Document 2:', options=df2.columns, key='columns_select_2')
+        columns1 = st.multiselect(f'Select columns from {file1_name}:', options=df1.columns, key='columns_select_1')
+        columns2 = st.multiselect(f'Select columns from {file2_name}:', options=df2.columns, key='columns_select_2')
 
         # Adjust weights section moved here for clarity and separate functionality
         st.subheader('Adjust Weights for Matching Criteria')
         if columns1 and columns2:
-            st.session_state['weights1'] = [st.slider(f"Weight for {col} in Document 1:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
-            st.session_state['weights2'] = [st.slider(f"Weight for {col} in Document 2:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
+            st.session_state['weights1'] = [st.slider(f"Weight for {col} in {file1_name}:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
+            st.session_state['weights2'] = [st.slider(f"Weight for {col} in {file2_name}:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
 
         num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
 
@@ -109,7 +113,7 @@ if st.session_state['authenticated']:
                     result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records)
                     st.success('Fuzzy matching completed!')
 
-                st.header('Matching Records')
+                st.header(f'Matching Records between {file1_name} and {file2_name}')
                 st.write(result_df)
 
                 csv = result_df.to_csv(index=False).encode('utf-8')
@@ -126,7 +130,7 @@ if st.session_state['authenticated']:
 # Bottom Expander for explaining the approach used by this app
 with st.expander("Approach Used by This App"):
     st.write("""
-        - The app performs fuzzy matching between selected columns from two documents.
+        - The app performs fuzzy matching between selected columns from two documents, using the file names to enhance user experience and clarity.
         - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
         - Weighted scores based on user-assigned importance are used to prioritize the match results.
