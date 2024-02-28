@@ -119,6 +119,7 @@ if st.session_state['authenticated']:
         df2 = pd.read_csv(file2)
 
         st.success('Files uploaded successfully!')
+
     
     if file1 is not None and file2 is not None:
         st.header(f'Preview of {file1_name}')
@@ -133,6 +134,11 @@ if st.session_state['authenticated']:
         if columns1 and columns2:
             weights1 = [st.slider(f"Weight for {col}:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
             weights2 = [st.slider(f"Weight for {col}:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
+
+                    # Display the total number of records for each file
+            st.write(f"Total records in {file1.name}: {df1.shape[0]}")
+            st.write(f"Total records in {file2.name}: {df2.shape[0]}")
+
 
             num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
             num_records = 'All' if num_records_input == 'All' else int(num_records_input)
