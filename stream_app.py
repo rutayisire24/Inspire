@@ -109,9 +109,9 @@ if st.session_state['authenticated']:
 
         if st.button('Compare Documents', key='compare_documents_button'):
             if columns1 and columns2 and (2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6):
-                with st.spinner('Performing fuzzy matching...'):
+                with st.spinner('Performing Matching...'):
                     result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
-                    st.success('Fuzzy matching completed!')
+                    st.success('Matching completed!')
 
                 st.header(f'Matching Records between {file1_name} and {file2_name}')
                 st.write(result_df)
@@ -130,7 +130,7 @@ if st.session_state['authenticated']:
 # Bottom Expander for explaining the approach used by this app
 with st.expander("Approach Used by This App"):
     st.write("""
-        - The app performs fuzzy matching between selected columns from two documents.
+        - The app performs  matching between selected columns from two documents.
         - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
         - Weighted scores based on user-assigned importance are used to prioritize the match results.
