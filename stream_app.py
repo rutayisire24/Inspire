@@ -13,7 +13,7 @@ if 'authenticated' not in st.session_state:
 with st.expander("How to Use This App"):
     st.write("""
         - **Step 1:** Enter the password to load the app.
-        - **Step 2:** Upload the first and second documents using the file uploaders.
+        - **Step 2:** Upload the Documents using the file uploaders.
         - **Step 3:** Select the columns from both documents that you want to compare.
         - **Step 4:** Click on 'Adjust Weights' to set the importance of each selected column (1 to 5).
         - **Step 5:** Enter the number of records you want to compare or 'All' to compare all records.
@@ -21,7 +21,7 @@ with st.expander("How to Use This App"):
         - **Note:** Make sure the documents are in CSV format.
     """)
 
-def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records):
+def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1_name, file2_name):
     progress_bar = st.progress(0)
     total = len(df1) if num_records == 'All' else min(num_records, len(df1))
     matches = []
@@ -46,7 +46,7 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records):
         progress_bar.progress(min((i + 1) / total, 1.0))
 
     progress_bar.empty()
-    column_labels = ['Doc1_' + col for col in columns1] + ['Doc2_' + col for col in columns2] + ['Weighted Average Score']
+    column_labels = [f'{file1_name}_{col}' for col in columns1] + [f'{file2_name}_{col}' for col in columns2] + ['Weighted Average Score']
     matches_df = pd.DataFrame(matches, columns=column_labels)
     # Sort the DataFrame by 'Weighted Average Score' in descending order
     return matches_df.sort_values(by='Weighted Average Score', ascending=False)
@@ -71,8 +71,8 @@ if st.session_state['authenticated']:
         file2 = st.file_uploader('Choose the second file', type=['csv'], key='file_uploader_2')
 
         # Capture the names of the uploaded files for use in headings and elsewhere
-        file1_name = file1.name if file1 else 'Document 1'
-        file2_name = file2.name if file2 else 'Document 2'
+        file1_name = file1.name[:-4] if file1 else 'Document 1'
+        file2_name = file2.name[:-4] if file2 else 'Document 2'
 
         if file1 and file2:
             df1 = pd.read_csv(file1)
@@ -110,7 +110,7 @@ if st.session_state['authenticated']:
         if st.button('Compare Documents', key='compare_documents_button'):
             if columns1 and columns2 and (2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6):
                 with st.spinner('Performing fuzzy matching...'):
-                    result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records)
+                    result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
                     st.success('Fuzzy matching completed!')
 
                 st.header(f'Matching Records between {file1_name} and {file2_name}')
@@ -130,7 +130,7 @@ if st.session_state['authenticated']:
 # Bottom Expander for explaining the approach used by this app
 with st.expander("Approach Used by This App"):
     st.write("""
-        - The app performs fuzzy matching between selected columns from two documents, using the file names to enhance user experience and clarity.
+        - The app performs fuzzy matching between selected columns from two documents.
         - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
         - Weighted scores based on user-assigned importance are used to prioritize the match results.
