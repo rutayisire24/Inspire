@@ -30,7 +30,7 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     progress_bar = st.progress(0)
     total = len(df1) if num_records == 'All' else min(num_records, len(df1))
     matches = []
-    score_bins = {'>99': 0, '90-99': 0, '80-89': 0, '70-79': 0, '60-69': 0, '<60': 0}
+    score_bins = {'100': 0, '90-99': 0, '80-89': 0, '70-79': 0, '60-69': 0, '<60': 0}
 
     for i, row1 in enumerate(df1.iterrows()):
         if num_records != 'All' and i >= num_records:
@@ -51,7 +51,7 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
         matches.append(match_data)
         
         if best_score > 95:
-            score_bins['>99'] += 1
+            score_bins['100'] += 1
         elif 90 <= best_score <= 99:
             score_bins['90-99'] += 1
         elif 80 <= best_score <= 89:
