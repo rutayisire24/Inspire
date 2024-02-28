@@ -101,12 +101,11 @@ if 'authenticated' not in st.session_state:
 with st.expander("How to Use This App"):
     st.write("""
         - **Step 1:** Enter the password to load the app.
-        - **Step 2:** Upload the Documents using the file uploaders.
+        - **Step 2:** Upload the Documents using the file uploaders (Either CSV or XLSX ).
         - **Step 3:** Select the columns from both documents that you want to compare.
         - **Step 4:** Click on 'Adjust Weights' to set the importance of each selected column (1 to 5).
         - **Step 5:** Enter the number of records you want to compare or 'All' to compare all records.
         - **Step 6:** Click on 'Compare Documents' to start the  matching process.
-        - **Note:** Make sure the documents are in CSV format.
     """)
 
 password = st.text_input("Enter the password", type="password", key="password_input")
