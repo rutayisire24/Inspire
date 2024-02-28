@@ -25,6 +25,7 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     progress_bar = st.progress(0)
     total = len(df1) if num_records == 'All' else min(num_records, len(df1))
     matches = []
+    score_bins = {'>90': 0, '80-89': 0, '70-79': 0, '60-69': 0, '<60': 0}
 
     for i, row1 in enumerate(df1.iterrows()):
         if num_records != 'All' and i >= num_records:
@@ -43,13 +44,31 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
                 best_match_index = row2
         match_data = [row1[1][col] for col in columns1] + [getattr(best_match_index, col) for col in columns2] + [best_score]
         matches.append(match_data)
+        
+        # Bin the scores
+        if best_score > 90:
+            score_bins['>90'] += 1
+        elif 80 <= best_score <= 89:
+            score_bins['80-89'] += 1
+        elif 70 <= best_score <= 79:
+            score_bins['70-79'] += 1
+        elif 60 <= best_score <= 69:
+            score_bins['60-69'] += 1
+        else:
+            score_bins['<60'] += 1
+
         progress_bar.progress(min((i + 1) / total, 1.0))
 
     progress_bar.empty()
     column_labels = [f'{file1_name}_{col}' for col in columns1] + [f'{file2_name}_{col}' for col in columns2] + ['Weighted Average Score']
     matches_df = pd.DataFrame(matches, columns=column_labels)
     # Sort the DataFrame by 'Weighted Average Score' in descending order
-    return matches_df.sort_values(by='Weighted Average Score', ascending=False)
+    matches_df_sorted = matches_df.sort_values(by='Weighted Average Score', ascending=False)
+    
+    # Display score bin summary
+    score_summary = f"Score Summary: >90: {score_bins['>90']}, 80-89: {score_bins['80-89']}, 70-79: {score_bins['70-79']}, 60-69: {score_bins['60-69']}, <60: {score_bins['<60']}"
+    
+    return matches_df_sorted, score_summary
 
 # Password input by the user with a unique key
 password = st.text_input("Enter the password", type="password", key="password_input")
@@ -110,8 +129,9 @@ if st.session_state['authenticated']:
         if st.button('Compare Documents', key='compare_documents_button'):
             if columns1 and columns2 and (2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6):
                 with st.spinner('Performing Matching...'):
-                    result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
+                    result_df, score_summary = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
                     st.success('Matching completed!')
+                    st.write(score_summary)
 
                 st.header(f'Matching Records between {file1_name} and {file2_name}')
                 st.write(result_df)
@@ -130,7 +150,7 @@ if st.session_state['authenticated']:
 # Bottom Expander for explaining the approach used by this app
 with st.expander("Approach Used by This App"):
     st.write("""
-        - The app performs  matching between selected columns from two documents.
+        - The app performs fuzzy matching between selected columns from two documents.
         - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
         - Weighted scores based on user-assigned importance are used to prioritize the match results.
