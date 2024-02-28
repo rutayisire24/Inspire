@@ -1,31 +1,30 @@
 import streamlit as st
 import pandas as pd
 from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
 import numpy as np
-import io
+import re  # For regex operations
 
-# Initialize session state for authentication
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
+# Preprocessing function to clean data
+def preprocess_data(df, columns):
+    for col in columns:
+        df[col] = df[col].astype(str).str.lower()  # Convert to lowercase
+        df[col] = df[col].str.strip()  # Trim whitespace
+        df[col] = df[col].apply(lambda x: preprocess_string(x) if not pd.isna(x) else x)
+    return df
 
-# Top Expander for guiding the user on how to use the app
-with st.expander("How to Use This App"):
-    st.write("""
-        - **Step 1:** Enter the password to load the app.
-        - **Step 2:** Upload the Documents using the file uploaders.
-        - **Step 3:** Select the columns from both documents that you want to compare.
-        - **Step 4:** Click on 'Adjust Weights' to set the importance of each selected column (1 to 5).
-        - **Step 5:** Enter the number of records you want to compare or 'All' to compare all records.
-        - **Step 6:** Click on 'Compare Documents' to start the fuzzy matching process.
-        - **Note:** Make sure the documents are in CSV format.
-    """)
+def preprocess_string(x):
+    return re.sub(r'\W+', ' ', x.lower().strip())
 
+# Fuzzy matching function (with preprocessing included)
 def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1_name, file2_name):
+    # Preprocess the dataframes
+    df1 = preprocess_data(df1, columns1)
+    df2 = preprocess_data(df2, columns2)
+    
     progress_bar = st.progress(0)
     total = len(df1) if num_records == 'All' else min(num_records, len(df1))
     matches = []
-    score_bins = {'>95': 0, '90-95':0,'80-89': 0, '70-79': 0, '60-69': 0, '<60': 0}
+    score_bins = {'>99': 0, '90-99': 0, '80-89': 0, '70-79': 0, '60-69': 0, '<60': 0}
 
     for i, row1 in enumerate(df1.iterrows()):
         if num_records != 'All' and i >= num_records:
@@ -34,7 +33,7 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
         best_match_index = None
         for row2 in df2.itertuples(index=False):
             weighted_score = 0
-            total_weight = sum(weights1)  # Assuming weights are equal for simplicity
+            total_weight = sum(weights1)
             for col1, col2, weight in zip(columns1, columns2, weights1):
                 score = fuzz.ratio(str(row1[1][col1]), str(getattr(row2, col2)))
                 weighted_score += (score * weight)
@@ -45,11 +44,10 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
         match_data = [row1[1][col] for col in columns1] + [getattr(best_match_index, col) for col in columns2] + [best_score]
         matches.append(match_data)
         
-        # Bin the scores
-        if best_score > 90:
-            score_bins['>95'] += 1
-        elif 90 <= best_score <= 95:
-            score_bins['90-95'] +=1
+        if best_score > 95:
+            score_bins['>99'] += 1
+        elif 90 <= best_score <= 99:
+            score_bins['90-99'] += 1
         elif 80 <= best_score <= 89:
             score_bins['80-89'] += 1
         elif 70 <= best_score <= 79:
@@ -65,21 +63,34 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     column_labels = [f'{file1_name}_{col}' for col in columns1] + [f'{file2_name}_{col}' for col in columns2] + ['Weighted Average Score']
     matches_df = pd.DataFrame(matches, columns=column_labels)
     matches_df_sorted = matches_df.sort_values(by='Weighted Average Score', ascending=False)
-    
+
     # Convert score_bins to DataFrame for plotting
     score_bins_df = pd.DataFrame(list(score_bins.items()), columns=['Score Range', 'Count'])
     score_bins_df.set_index('Score Range', inplace=True)
     
     # Display the bar chart for score summary
     st.bar_chart(score_bins_df)
-    st.info("Generally score above 90 are recommended for a close match")
+    st.info("Scores of 100  represent a perfect match")
     
+
     return matches_df_sorted
 
-# Password input by the user with a unique key
-password = st.text_input("Enter the password", type="password", key="password_input")
+# Streamlit UI code
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
 
-# "Load App" button
+with st.expander("How to Use This App"):
+    st.write("""
+        - **Step 1:** Enter the password to load the app.
+        - **Step 2:** Upload the Documents using the file uploaders.
+        - **Step 3:** Select the columns from both documents that you want to compare.
+        - **Step 4:** Click on 'Adjust Weights' to set the importance of each selected column (1 to 5).
+        - **Step 5:** Enter the number of records you want to compare or 'All' to compare all records.
+        - **Step 6:** Click on 'Compare Documents' to start the  matching process.
+        - **Note:** Make sure the documents are in CSV format.
+    """)
+
+password = st.text_input("Enter the password", type="password", key="password_input")
 load_app = st.button('Load App')
 
 if load_app:
@@ -89,21 +100,20 @@ if load_app:
         st.error("Incorrect password. Please try again.")
 
 if st.session_state['authenticated']:
-    with st.spinner('Please wait while the files are being uploaded...'):
-        st.title('Record Linking Tool - Prototype')
+    st.title('Record Linking Tool (Prototype) ')
 
-        file1 = st.file_uploader('Choose the first file', type=['csv'], key='file_uploader_1')
-        file2 = st.file_uploader('Choose the second file', type=['csv'], key='file_uploader_2')
+    file1 = st.file_uploader('Choose the First File', type=['csv'], key='file_uploader_1')
+    file2 = st.file_uploader('Choose the Second File', type=['csv'], key='file_uploader_2')
 
-        file1_name = file1.name[:-4] if file1 else 'Document 1'
-        file2_name = file2.name[:-4] if file2 else 'Document 2'
+    file1_name = file1.name[:-4] if file1 else 'Document 1'
+    file2_name = file2.name[:-4] if file2 else 'Document 2'
 
-        if file1 and file2:
-            df1 = pd.read_csv(file1)
-            df2 = pd.read_csv(file2)
+    if file1 and file2:
+        df1 = pd.read_csv(file1)
+        df2 = pd.read_csv(file2)
 
-            st.success('Files uploaded successfully!')
-
+        st.success('Files uploaded successfully!')
+    
     if file1 is not None and file2 is not None:
         st.header(f'Preview of {file1_name}')
         st.write(df1.head())
@@ -111,33 +121,31 @@ if st.session_state['authenticated']:
         st.header(f'Preview of {file2_name}')
         st.write(df2.head())
 
-        columns1 = st.multiselect(f'Select columns from {file1_name}:', options=df1.columns, key='columns_select_1')
-        columns2 = st.multiselect(f'Select columns from {file2_name}:', options=df2.columns, key='columns_select_2')
+        columns1 = st.multiselect('Select columns from the first document:', options=df1.columns, key='columns_select_1')
+        columns2 = st.multiselect('Select columns from the second document:', options=df2.columns, key='columns_select_2')
 
-        st.subheader('Adjust Weights for Matching Criteria')
         if columns1 and columns2:
-            st.session_state['weights1'] = [st.slider(f"Weight for {col} in {file1_name}:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
-            st.session_state['weights2'] = [st.slider(f"Weight for {col} in {file2_name}:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
+            weights1 = [st.slider(f"Weight for {col}:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
+            weights2 = [st.slider(f"Weight for {col}:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
 
-        num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
-        num_records = 'All' if num_records_input == 'All' else int(num_records_input)
+            num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
+            num_records = 'All' if num_records_input == 'All' else int(num_records_input)
 
-        if st.button('Compare Documents', key='compare_documents_button'):
-            if columns1 and columns2:
+            if st.button('Compare Documents', key='compare_documents_button'):
                 with st.spinner('Performing Matching...'):
-                    result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
+                    result_df = fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1.name, file2.name)
                     st.success('Matching completed!')
-                    st.header(f'Matching Records between {file1_name} and {file2_name}')
                     st.write(result_df)
 
                     csv = result_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="Download matching records as CSV",
+                        "Download matching records as CSV",
                         data=csv,
                         file_name='matching_records.csv',
                         mime='text/csv',
                         key='download_csv_button'
                     )
+
             else:
                 st.error('Please select columns from each document and assign weights.')
 
