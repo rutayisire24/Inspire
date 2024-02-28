@@ -68,7 +68,8 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     progress_bar.empty()
     column_labels = [f'{file1_name}_{col}' for col in columns1] + [f'{file2_name}_{col}' for col in columns2] + ['Weighted Average Score']
     matches_df = pd.DataFrame(matches, columns=column_labels)
-    matches_df_sorted = matches_df.sort_values(by='Weighted Average Score', ascending=False)
+    matches_df_sorted = matches_df[matches_df['Weighted Average Score'] >= cutoff_score].sort_values(by='Weighted Average Score', ascending=False)
+    
 
     # Convert score_bins to DataFrame for plotting
     score_bins_df = pd.DataFrame(list(score_bins.items()), columns=['Score Range', 'Count'])
@@ -142,6 +143,15 @@ if st.session_state['authenticated']:
 
             num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
             num_records = 'All' if num_records_input == 'All' else int(num_records_input)
+
+
+            with st.expander("Set Cutoff Score"):
+             # Inside the expander, place the slider for the cutoff score
+                cutoff_score = st.slider("Choose a Cutoff Score (%) - Recommended is 90(%)", 0, 100, 90,key="cutoff_score_slider")
+
+            st.write(f"The selected cutoff score is: {cutoff_score}%")
+
+
 
             if st.button('Compare Documents', key='compare_documents_button'):
                 with st.spinner('Performing Matching...'):
