@@ -188,6 +188,7 @@ if st.session_state['authenticated']:
 with st.expander("Approach Used by This App"):
     st.write("""
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
-        - Weighted scores based on user-assigned importance are used to prioritize the match results.
+        - Weighted scores can be based on user-assigned importance are used to prioritize the match results.
+        - The user can also set  a minimum threshold (the cutoff score). 
         - Results are arranged in descending order of the weighted average score to prioritize higher matches.
     """)
