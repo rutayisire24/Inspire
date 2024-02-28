@@ -9,8 +9,37 @@ import io
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
-# Password input by the user
-password = st.text_input("Enter the password", type="password")
+def fuzzy_match(df1, df2, columns1, columns2, num_records):
+    progress_bar = st.progress(0)
+    # Determine the total number of iterations for progress calculation
+    total = len(df1) if num_records == 'All' else min(num_records, len(df1))
+    matches = []
+
+    for i, row1 in enumerate(df1.iterrows()):
+        if num_records != 'All' and i >= num_records:
+            break  # Exit loop after reaching the specified number of records
+        best_score = -1
+        best_match_index = None
+        for row2 in df2.itertuples(index=False):
+            score = 0
+            for col1, col2 in zip(columns1, columns2):
+                score += fuzz.ratio(str(row1[1][col1]), str(getattr(row2, col2)))
+            score /= len(columns1)
+            if score > best_score:
+                best_score = score
+                best_match_index = row2
+        match_data = [row1[1][col] for col in columns1] + [getattr(best_match_index, col) for col in columns2] + [best_score]
+        matches.append(match_data)
+        # Update progress bar, ensuring the value does not exceed 1.0
+        progress_bar.progress(min((i + 1) / total, 1.0))
+
+    progress_bar.empty()  # Clear progress bar after completion
+
+    column_labels = ['Doc1_' + col for col in columns1] + ['Doc2_' + col for col in columns2] + ['Average Score']
+    return pd.DataFrame(matches, columns=column_labels)
+
+# Password input by the user with a unique key
+password = st.text_input("Enter the password", type="password", key="password_input")
 
 # "Load App" button
 load_app = st.button('Load App')
@@ -23,97 +52,56 @@ if load_app:
         st.error("Incorrect password. Please try again.")
 
 if st.session_state['authenticated']:
-    # Function to preprocess the uploaded file
-    def preprocess_file(uploaded_file):
-        if uploaded_file is not None:
-            df = pd.read_csv(uploaded_file)
-            return df
-        else:
-            return None
+    with st.spinner('Please wait while the files are being uploaded...'):
+        st.title('Record Linking Tool - Prototype')
 
-    # Function to perform fuzzy matching
-    def fuzzy_match(df1, df2, columns1, columns2, num_records):
-        if num_records != 'All':
-            if num_records < len(df1):
-                df1 = df1.sample(n=num_records)  # Randomly sample records from df1
-        matches = []
+        file1 = st.file_uploader('Choose the first file', type=['csv'], key='file_uploader_1')
+        file2 = st.file_uploader('Choose the second file', type=['csv'], key='file_uploader_2')
 
-        for _, row1 in df1.iterrows():
-            best_score = -1
-            best_match_index = None
-            for i, row2 in df2.iterrows():
-                score = 0
-                for col1, col2 in zip(columns1, columns2):
-                    score += fuzz.ratio(str(row1[col1]), str(row2[col2]))
-                score /= len(columns1)
-                if score > best_score:
-                    best_score = score
-                    best_match_index = i
-            match_data = [row1[col] for col in columns1] + [df2.iloc[best_match_index][col] for col in columns2] + [best_score]
-            matches.append(match_data)
+        if file1 and file2:
+            df1 = pd.read_csv(file1)
+            df2 = pd.read_csv(file2)
 
-        column_labels = ['Doc1_' + col for col in columns1] + ['Doc2_' + col for col in columns2] + ['Average Score']
-        return pd.DataFrame(matches, columns=column_labels)
+            st.success('Files uploaded successfully!')
 
-    # Streamlit UI
-    st.title('Record Linking Tool - Prototype')
-
-    with st.expander("How to Use This Tool"):
-        st.write("""
-            1. Upload two CSV files using the file uploaders below.
-            2. Preview the uploaded files to confirm their contents.
-            3. Select between 2 to 6 columns from each document for comparison.
-            4. Enter the number of records you want to compare or 'All' to compare all records. If a number is entered, that many records will be randomly selected from the first document.
-            5. Click the 'Compare Documents' button to perform the comparison.
-            6. Review the matching records displayed along with their average similarity score.
-            7. Use the 'Download matching records as CSV' button to download the results.
-        """)
-
-    st.header('Upload Files')
-    file1 = st.file_uploader('Choose the first file', type=['csv'])
-    file2 = st.file_uploader('Choose the second file', type=['csv'])
-
-    if file1 and file2:
-        df1 = preprocess_file(file1)
-        df2 = preprocess_file(file2)
-
+    if file1 is not None and file2 is not None:
         st.header('Preview of Document 1')
         st.write(df1.head())
 
         st.header('Preview of Document 2')
         st.write(df2.head())
 
-        st.header('Select Columns for Comparison')
-        if not df1.empty and not df2.empty:
-            columns1 = st.multiselect('Select columns from Document 1:', options=df1.columns, help="Select between 2 to 6 columns")
-            columns2 = st.multiselect('Select columns from Document 2:', options=df2.columns, help="Select between 2 to 6 columns")
+        columns1 = st.multiselect('Select columns from Document 1:', options=df1.columns, key='columns_select_1')
+        columns2 = st.multiselect('Select columns from Document 2:', options=df2.columns, key='columns_select_2')
 
-            num_records = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All')
+        num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
 
-            # Convert input to either an integer or "All"
-            if num_records != 'All':
-                try:
-                    num_records = int(num_records)
-                except ValueError:
-                    st.error('Please enter a valid number or "All".')
-                    st.stop()
+        # Convert num_records to an integer if not 'All'
+        if num_records_input != 'All':
+            try:
+                num_records = int(num_records_input)
+            except ValueError:
+                st.error('Please enter a valid number or "All".')
+                st.stop()
+        else:
+            num_records = 'All'
 
-            if st.button('Compare Documents'):
-                if 2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6:
+        if st.button('Compare Documents', key='compare_documents_button'):
+            if 2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6:
+                with st.spinner('Performing fuzzy matching...'):
                     result_df = fuzzy_match(df1, df2, columns1, columns2, num_records)
+                    st.success('Fuzzy matching completed!')
 
-                    st.header('Matching Records')
-                    st.write(result_df)
+                st.header('Matching Records')
+                st.write(result_df)
 
-                    # Convert DataFrame to CSV for download
-                    csv = result_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Download matching records as CSV",
-                        data=csv,
-                        file_name='matching_records.csv',
-                        mime='text/csv',
-                    )
-                else:
-                    st.error('Please select between 2 to 6 columns from each document.')
-    else:
-        st.write('Please upload both files to compare.')
+                csv = result_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download matching records as CSV",
+                    data=csv,
+                    file_name='matching_records.csv',
+                    mime='text/csv',
+                    key='download_csv_button'
+                )
+            else:
+                st.error('Please select between 2 to 6 columns from each document.')
