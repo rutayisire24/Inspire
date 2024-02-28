@@ -62,13 +62,16 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     progress_bar.empty()
     column_labels = [f'{file1_name}_{col}' for col in columns1] + [f'{file2_name}_{col}' for col in columns2] + ['Weighted Average Score']
     matches_df = pd.DataFrame(matches, columns=column_labels)
-    # Sort the DataFrame by 'Weighted Average Score' in descending order
     matches_df_sorted = matches_df.sort_values(by='Weighted Average Score', ascending=False)
     
-    # Display score bin summary
-    score_summary = f"Score Summary: >90: {score_bins['>90']}, 80-89: {score_bins['80-89']}, 70-79: {score_bins['70-79']}, 60-69: {score_bins['60-69']}, <60: {score_bins['<60']}"
+    # Convert score_bins to DataFrame for plotting
+    score_bins_df = pd.DataFrame(list(score_bins.items()), columns=['Score Range', 'Count'])
+    score_bins_df.set_index('Score Range', inplace=True)
     
-    return matches_df_sorted, score_summary
+    # Display the bar chart for score summary
+    st.bar_chart(score_bins_df)
+    
+    return matches_df_sorted
 
 # Password input by the user with a unique key
 password = st.text_input("Enter the password", type="password", key="password_input")
@@ -89,7 +92,6 @@ if st.session_state['authenticated']:
         file1 = st.file_uploader('Choose the first file', type=['csv'], key='file_uploader_1')
         file2 = st.file_uploader('Choose the second file', type=['csv'], key='file_uploader_2')
 
-        # Capture the names of the uploaded files for use in headings and elsewhere
         file1_name = file1.name[:-4] if file1 else 'Document 1'
         file2_name = file2.name[:-4] if file2 else 'Document 2'
 
@@ -109,49 +111,36 @@ if st.session_state['authenticated']:
         columns1 = st.multiselect(f'Select columns from {file1_name}:', options=df1.columns, key='columns_select_1')
         columns2 = st.multiselect(f'Select columns from {file2_name}:', options=df2.columns, key='columns_select_2')
 
-        # Adjust weights section moved here for clarity and separate functionality
         st.subheader('Adjust Weights for Matching Criteria')
         if columns1 and columns2:
             st.session_state['weights1'] = [st.slider(f"Weight for {col} in {file1_name}:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
             st.session_state['weights2'] = [st.slider(f"Weight for {col} in {file2_name}:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
 
         num_records_input = st.text_input('How many records do you want to compare? Enter a number or "All" for all records.', 'All', key='num_records_input')
-
-        if num_records_input != 'All':
-            try:
-                num_records = int(num_records_input)
-            except ValueError:
-                st.error('Please enter a valid number or "All".')
-                st.stop()
-        else:
-            num_records = 'All'
+        num_records = 'All' if num_records_input == 'All' else int(num_records_input)
 
         if st.button('Compare Documents', key='compare_documents_button'):
-            if columns1 and columns2 and (2 <= len(columns1) <= 6 and 2 <= len(columns2) <= 6):
+            if columns1 and columns2:
                 with st.spinner('Performing Matching...'):
-                    result_df, score_summary = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
+                    result_df = fuzzy_match(df1, df2, columns1, columns2, st.session_state['weights1'], st.session_state['weights2'], num_records, file1_name, file2_name)
                     st.success('Matching completed!')
-                    st.write(score_summary)
+                    st.header(f'Matching Records between {file1_name} and {file2_name}')
+                    st.write(result_df)
 
-                st.header(f'Matching Records between {file1_name} and {file2_name}')
-                st.write(result_df)
-
-                csv = result_df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Download matching records as CSV",
-                    data=csv,
-                    file_name='matching_records.csv',
-                    mime='text/csv',
-                    key='download_csv_button'
-                )
+                    csv = result_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="Download matching records as CSV",
+                        data=csv,
+                        file_name='matching_records.csv',
+                        mime='text/csv',
+                        key='download_csv_button'
+                    )
             else:
-                st.error('Please select between 2 to 6 columns from each document and assign weights.')
+                st.error('Please select columns from each document and assign weights.')
 
 # Bottom Expander for explaining the approach used by this app
 with st.expander("Approach Used by This App"):
     st.write("""
-        - The app performs fuzzy matching between selected columns from two documents.
-        - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
         - Weighted scores based on user-assigned importance are used to prioritize the match results.
         - Results are arranged in descending order of the weighted average score to prioritize higher matches.
