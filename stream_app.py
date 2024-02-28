@@ -47,7 +47,9 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records):
 
     progress_bar.empty()
     column_labels = ['Doc1_' + col for col in columns1] + ['Doc2_' + col for col in columns2] + ['Weighted Average Score']
-    return pd.DataFrame(matches, columns=column_labels)
+    matches_df = pd.DataFrame(matches, columns=column_labels)
+    # Sort the DataFrame by 'Weighted Average Score' in descending order
+    return matches_df.sort_values(by='Weighted Average Score', ascending=False)
 
 # Password input by the user with a unique key
 password = st.text_input("Enter the password", type="password", key="password_input")
@@ -84,14 +86,9 @@ if st.session_state['authenticated']:
         columns1 = st.multiselect('Select columns from Document 1:', options=df1.columns, key='columns_select_1')
         columns2 = st.multiselect('Select columns from Document 2:', options=df2.columns, key='columns_select_2')
 
-        # Initialize or reset weights
-        if 'weights1' not in st.session_state or 'weights2' not in st.session_state:
-            st.session_state['weights1'] = [5] * len(columns1)
-            st.session_state['weights2'] = [5] * len(columns2)
-
-        adjust_weights = st.button('Adjust Weights')
-
-        if adjust_weights or (columns1 and columns2):
+        # Adjust weights section moved here for clarity and separate functionality
+        st.subheader('Adjust Weights for Matching Criteria')
+        if columns1 and columns2:
             st.session_state['weights1'] = [st.slider(f"Weight for {col} in Document 1:", 1, 5, 5, key=f'weight_1_{col}') for col in columns1]
             st.session_state['weights2'] = [st.slider(f"Weight for {col} in Document 2:", 1, 5, 5, key=f'weight_2_{col}') for col in columns2]
 
@@ -132,4 +129,6 @@ with st.expander("Approach Used by This App"):
         - The app performs fuzzy matching between selected columns from two documents.
         - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
         - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
-        - Weighted scores based on user-assigned importance """)
+        - Weighted scores based on user-assigned importance are used to prioritize the match results.
+        - Results are arranged in descending order of the weighted average score to prioritize higher matches.
+    """)
