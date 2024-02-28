@@ -144,8 +144,9 @@ if st.session_state['authenticated']:
         columns2 = st.multiselect('Select columns from the second document:', options=df2.columns, key='columns_select_2')
 
         if columns1 and columns2:
-            weights1 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_1_{col}') for col in columns1]
-            weights2 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_2_{col}') for col in columns2]
+            with st.expander("Set weights for the columns"):
+                weights1 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_1_{col}') for col in columns1]
+                weights2 = [st.slider(f"Weight for {col}:", 1, 3, 3, key=f'weight_2_{col}') for col in columns2]
 
                     # Display the total number of records for each file
             st.write(f"Total records in {file1.name}: {df1.shape[0]}")
