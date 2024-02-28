@@ -12,6 +12,7 @@ def preprocess_data(df, columns):
 
 def preprocess_string(x):
     """Preprocess a single string: lowercase, trim, and remove special characters."""
+    x = str(x)
     # Convert to lowercase
     x = x.lower()
     # Trim whitespace
