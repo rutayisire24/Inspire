@@ -9,6 +9,17 @@ import io
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
+# Top Expander for guiding the user on how to use the app
+with st.expander("How to Use This App"):
+    st.write("""
+        - **Step 1:** Enter the password to load the app.
+        - **Step 2:** Upload the first and second documents using the file uploaders.
+        - **Step 3:** Select the columns from both documents that you want to compare.
+        - **Step 4:** Enter the number of records you want to compare or 'All' to compare all records.
+        - **Step 5:** Click on 'Compare Documents' to start the fuzzy matching process.
+        - **Note:** Make sure the documents are in CSV format.
+    """)
+
 def fuzzy_match(df1, df2, columns1, columns2, num_records):
     progress_bar = st.progress(0)
     # Determine the total number of iterations for progress calculation
@@ -105,3 +116,13 @@ if st.session_state['authenticated']:
                 )
             else:
                 st.error('Please select between 2 to 6 columns from each document.')
+
+# Bottom Expander for explaining the approach used by the app
+with st.expander("Approach Used by This App"):
+    st.write("""
+        - The app  performs fuzzy matching between selected columns from two documents.
+        - Fuzzy matching involves finding rows in one document that approximately match rows in another document.
+        - The matching score is calculated based on the similarity between the text in the selected columns, using the Levenshtein distance to estimate similarity.
+        - The average score across all selected columns determines the best match for each row in the first document.
+        - This method allows for the identification of similar records even when there are minor discrepancies in spelling or formatting.
+    """)
