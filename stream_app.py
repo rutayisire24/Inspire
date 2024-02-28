@@ -3,6 +3,18 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 import numpy as np
 
+## Load data 
+
+def load_data(file):
+    if file is not None:
+        file_name = file.name
+        if file_name.endswith('.csv'):
+            return pd.read_csv(file)
+        elif file_name.endswith('.xlsx'):
+            return pd.read_excel(file)
+    else:
+        return None
+
 # Preprocessing function to clean data
 def preprocess_data(df, columns):
     for col in columns:
@@ -109,15 +121,15 @@ if load_app:
 if st.session_state['authenticated']:
     st.title('Record Linking Tool (Prototype) ')
 
-    file1 = st.file_uploader('Choose the First File', type=['csv'], key='file_uploader_1')
-    file2 = st.file_uploader('Choose the Second File', type=['csv'], key='file_uploader_2')
+    file1 = st.file_uploader('Choose the First File', type=['csv', 'xlsx'], key='file_uploader_1')
+    file2 = st.file_uploader('Choose the Second File', type=['csv','xlsx'], key='file_uploader_2')
 
     file1_name = file1.name[:-4] if file1 else 'Document 1'
     file2_name = file2.name[:-4] if file2 else 'Document 2'
 
     if file1 and file2:
-        df1 = pd.read_csv(file1)
-        df2 = pd.read_csv(file2)
+        df1 = load_data(file1)
+        df2 = load_data(file2)
 
         st.success('Files uploaded successfully!')
 
@@ -147,9 +159,9 @@ if st.session_state['authenticated']:
 
             with st.expander("Set Cutoff Score"):
              # Inside the expander, place the slider for the cutoff score
-                cutoff_score = st.slider("Choose a Cutoff Score (%) - Recommended is 90(%)", 0, 100, 90,key="cutoff_score_slider")
+                cutoff_score = st.slider("Choose a Cutoff Score - Recommended is 90", 0, 100, 90,key="cutoff_score_slider")
 
-            st.write(f"The selected cutoff score is: {cutoff_score}%")
+            st.write(f"The selected cutoff score is: {cutoff_score}")
 
 
 
