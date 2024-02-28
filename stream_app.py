@@ -42,35 +42,17 @@ def fuzzy_match(df1, df2, columns1, columns2, num_records):
 # Streamlit UI
 st.title('Document Comparison Tool')
 
-
-
-# Simple authentication function
-def authenticate(password):
-    return password == "inspire"
-
-# Streamlit UI for authentication
-password = st.text_input("Enter the password to use the app:", type="password")
-
-if authenticate(password):
-    st.title('Document Comparison Tool')
-
-    # Guide for using the app
-    with st.expander("How to Use This App"):
-        st.write("""
-            1. Upload two CSV files using the file uploaders below.
-            2. Preview the uploaded files to confirm their contents.
-            3. Select between 2 to 6 columns from each document for comparison.
-            4. Enter the number of records you want to compare or 'All' to compare all records. If a number is entered, that many records will be randomly selected from the first document.
-            5. Click the 'Compare Documents' button to perform the comparison.
-            6. Review the matching records displayed along with their average similarity score.
-            7. Use the 'Download matching records as CSV' button to download the results.
-        """)
-
-    st.header('Upload Files')
-    # The rest of your Streamlit code for the app goes here, inside this if block
-    # ...
-else:
-    st.error("Incorrect password. Please try again.")
+# Guide for using the app
+with st.expander("How to Use This App"):
+    st.write("""
+        1. Upload two CSV files using the file uploaders below.
+        2. Preview the uploaded files to confirm their contents.
+        3. Select between 2 to 6 columns from each document for comparison.
+        4. Enter the number of records you want to compare or 'All' to compare all records. If a number is entered, that many records will be randomly selected from the first document.
+        5. Click the 'Compare Documents' button to perform the comparison.
+        6. Review the matching records displayed along with their average similarity score.
+        7. Use the 'Download matching records as CSV' button to download the results.
+    """)
 
 st.header('Upload Files')
 file1 = st.file_uploader('Choose the first file', type=['csv'])
