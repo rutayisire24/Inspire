@@ -40,10 +40,10 @@ def fuzzy_match(df1, df2, columns1, columns2, num_records):
     return pd.DataFrame(matches, columns=column_labels)
 
 # Streamlit UI
-st.title('Document Comparison Tool')
+st.title('Record Linking Tool - Prototype')
 
 # Guide for using the app
-with st.expander("How to Use This App"):
+with st.expander("How to Use This Tool"):
     st.write("""
         1. Upload two CSV files using the file uploaders below.
         2. Preview the uploaded files to confirm their contents.
