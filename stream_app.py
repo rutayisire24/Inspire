@@ -141,8 +141,8 @@ if st.session_state['authenticated']:
         st.header(f'Preview of {file2_name}')
         st.write(df2.head())
 
-        columns1 = st.multiselect('Select columns from the first document:', options=df1.columns, key='columns_select_1')
-        columns2 = st.multiselect('Select columns from the second document:', options=df2.columns, key='columns_select_2')
+        columns1 = st.multiselect(f'Select columns from the {file1_name}:', options=df1.columns, key='columns_select_1')
+        columns2 = st.multiselect(f'Select columns from the {file2_name}:', options=df2.columns, key='columns_select_2')
 
         if columns1 and columns2:
             with st.expander("Set weights"):
