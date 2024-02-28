@@ -88,11 +88,10 @@ def fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, f
     score_bins_df.set_index('Score Range', inplace=True)
     
     # Display the bar chart for score summary
-    st.bar_chart(score_bins_df)
-    st.info("Scores of 100  represent a perfect match")
+    
     
 
-    return matches_df_sorted
+    return matches_df_sorted , score_bins, score_bins_df
 
 # Streamlit UI code
 if 'authenticated' not in st.session_state:
@@ -165,12 +164,25 @@ if st.session_state['authenticated']:
             st.write(f"The selected cutoff score is: {cutoff_score}")
 
 
-
             if st.button('Compare Documents', key='compare_documents_button'):
                 with st.spinner('Performing Matching...'):
-                    result_df = fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1.name, file2.name)
+
+                    result_df, score_bins, score_bins_df = fuzzy_match(df1, df2, columns1, columns2, weights1, weights2, num_records, file1.name, file2.name)
                     st.success('Matching completed!')
-                    st.write(result_df)
+
+                                                # Use score_bins_df to display the count of perfect matches
+                    if '100' in score_bins:  # Check if there are any perfect matches
+                        perfect_matches_count = score_bins['100']
+                        st.info(f"Number of records with a perfect match score of 100: {perfect_matches_count}")
+                    else:
+                        st.info("There are no records with a perfect match score of 100.")
+
+                    with st.expander('Show Histogram'):
+                        st.bar_chart(score_bins_df)
+
+                    with st.expander('Display Results'):
+                        st.write(result_df)
+
 
                     csv = result_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
